@@ -1,15 +1,15 @@
-FROM node:7
+FROM node:26
 
 RUN apt-get update \
     && apt-get dist-upgrade -y \
     && apt-get install -y openssh-server gdb \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir /var/run/sshd \
+    && mkdir -p /run/sshd \
     && useradd -ms /bin/bash livai.ackerman \
     && useradd -ms /home/hackonymousoflix/.shell.sh hackonymousoflix \
     && useradd -ms /bin/bash will.byers \
     && chmod o-r /tmp \
-    && chmod 755 /var/run/sshd
+    && chmod 755 /run/sshd
 
 COPY src /etc
 
@@ -30,20 +30,20 @@ RUN npm install \
     && chmod 600 .ssh/authorized_keys \
     && chmod 700 .shell.sh \
     && chmod 700 vm.js \
-    && chmod -w . \
-    && echo "source /etc/peda/peda.py" >> .gdbinit
+    && chmod -w .
 EXPOSE 845
 
 # chall 11 Exploit C
+# NOTE: -no-pie est indispensable : le write-up d'origine s'appuie sur l'adresse
+# fixe de `faille` (ret2win via objdump). Sans cela, gcc moderne (PIE par défaut)
+# rendrait le binaire non exploitable tel que documenté.
 WORKDIR /home/will.byers
 COPY src-chall11 .
-RUN gcc -o exploit exploit.c -fno-stack-protector -Wl,-z,relro,-z,now,-z,noexecstack \
+RUN gcc -o exploit exploit.c -fno-stack-protector -fno-pie -no-pie -Wl,-z,relro,-z,now,-z,noexecstack \
     && rm exploit.c \
     && chown will.byers:will.byers -R * \
     && chmod 4755 exploit \
     && chmod 700 MyLittleToDoList.txt \
-    && chown hackonymousoflix:hackonymousoflix -R /etc/peda \
-    && chmod +r /etc/peda/* \
     && chmod -w .
 
 # container launch
