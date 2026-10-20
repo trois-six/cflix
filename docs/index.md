@@ -1,5 +1,5 @@
 ---
-okf_version: "2.0"
+okf_version: "0.2"
 ---
 
 # Documentation
@@ -11,8 +11,3 @@ bundle.
 
 - [Flaws explanation](Flaws_explanation.md) — how each intentional vulnerability
   of the challenge was introduced, and how it should be fixed.
-
-## Campaign material
-
-- [communication](communication) — posters, emails and slides. One of the
-  posters is also used in a bonus challenge.
