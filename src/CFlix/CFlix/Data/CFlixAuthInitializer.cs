@@ -156,12 +156,6 @@ namespace CFlix.Data
                 "49fdbf1ca802408243d0e5a76fff553de70387f996564998d4561a73b086239e")
             { IsAvailable = true });
 
-            var challBonus2 = await CreateEasterEgg(new EasterEgg("L'éthique des barmans",
-                EasterEggType.Bonus,
-                "Parce qu'On Sait Tituber En Rigolant",
-                "c1f10fa4ee420d6efe0b862487e0e707aaab2ad6c29a04c67fd192e18b3e0208")
-            { IsAvailable = true });
-
             var challBonus3 = await CreateEasterEgg(new EasterEgg("Lu et approuvé",
                 EasterEggType.Bonus,
                 "Un oeuf peut en cacher un autre",

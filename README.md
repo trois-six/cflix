@@ -35,7 +35,7 @@ exploit Hackonymousoflix's own servers.
 NB: each TV show available on CFlix maps to one main challenge.
 
 The challenges are grouped into three stages that you can unlock progressively
-(see [src/README.md](src/README.md)). Five bonus challenges are also available.
+(see [src/README.md](src/README.md)). Four bonus challenges are also available.
 
 ## Architecture and deployment
 
