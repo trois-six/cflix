@@ -32,7 +32,11 @@ namespace CFlix.Services
 
         public async override Task<SignInResult> PasswordSignInAsync(string userName, string password, bool isPersistent, bool lockoutOnFailure)
         {
-            var userAd = await ad.AuthenticateUserAsync("cdbdx\\" + userName, password);
+            // Optional NT/LDAP domain prefix, configurable through CFLIX__LDAPDOMAIN
+            // (left empty by default so the project stays organization-agnostic).
+            var domain = Environment.GetEnvironmentVariable("CFLIX__LDAPDOMAIN");
+            var login = string.IsNullOrEmpty(domain) ? userName : domain + "\\" + userName;
+            var userAd = await ad.AuthenticateUserAsync(login, password);
 
             if (userAd != null)
             {
