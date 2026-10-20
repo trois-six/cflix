@@ -44,8 +44,8 @@ services:
     # user: cflix-db-admin
     restart: always
     volumes:
-    # PostgreSQL 18+ : les données sont désormais dans /var/lib/postgresql
-    # (sous-dossier par version majeure), plus dans /var/lib/postgresql/data.
+    # PostgreSQL 18+ stores its data under /var/lib/postgresql (in a
+    # major-version subdirectory), no longer under /var/lib/postgresql/data.
     - pgdata:/var/lib/postgresql
     environment:
     # - POSTGRES_USER=cflix-db-admin

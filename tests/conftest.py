@@ -1,17 +1,17 @@
-"""Fixtures partagées pour la suite de tests d'intégration CFlix.
+"""Shared fixtures for the CFlix integration test suite.
 
-Ces tests rejouent — sous forme automatisée et adaptée — les write-ups de
-https://github.com/trois-six/cflix1_exploits afin de vérifier que, après la
-modernisation de la stack, *toutes les failles volontaires et tous les easter
-eggs du challenge fonctionnent encore*.
+These tests replay — in an automated, adapted form — the write-ups from
+https://github.com/trois-six/cflix1_exploits, to verify that, after the stack
+was modernized, *every intentional flaw and every easter egg of the challenge
+still works*.
 
-Pré-requis : la stack doit tourner et la base être initialisée :
+Prerequisite: the stack must be running and the database initialized:
 
     cd src
     docker compose up -d
     docker compose exec -T cflix dotnet CFlix.dll database update all
 
-(ou simplement `tests/run.sh`, qui fait tout cela puis lance pytest.)
+(or simply `tests/run.sh`, which does all of that then runs pytest.)
 """
 import os
 import random
@@ -26,21 +26,22 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.simplefilter("ignore")
 
-# --- Points d'entrée (surchargables par variables d'environnement) -----------
+# --- Entry points (overridable via environment variables) --------------------
 CFLIX_URL = os.environ.get("CFLIX_URL", "https://localhost")
-# L'épreuve 9 (serveur NodeJS de l'attaquant) est exposée par nginx via l'en-tête
-# Host "hackonymousoflix" (reverse-proxy -> hackonymousoflix:1337), comme à l'origine.
+# Challenge 9 (the attacker's NodeJS server) is exposed by nginx via the
+# "hackonymousoflix" Host header (reverse-proxy -> hackonymousoflix:1337), as
+# in the original setup.
 HACKO_HOST = os.environ.get("HACKO_HOST", "hackonymousoflix")
-HACKO_URL = os.environ.get("HACKO_URL", CFLIX_URL)        # même reverse-proxy
+HACKO_URL = os.environ.get("HACKO_URL", CFLIX_URL)        # same reverse-proxy
 SSH_HOST = os.environ.get("CFLIX_SSH_HOST", "127.0.0.1")
 IMGVIEWER_SSH_PORT = int(os.environ.get("IMGVIEWER_SSH_PORT", "22222"))
 HACKO_SSH_PORT = int(os.environ.get("HACKO_SSH_PORT", "845"))
 ROBOTSHOP_URL = os.environ.get("ROBOTSHOP_URL", "http://localhost:84")
 
-# --- Flags / easter eggs attendus (vérité terrain des write-ups) -------------
+# --- Expected flags / easter eggs (ground truth from the write-ups) ----------
 FLAGS = {
     "p1_xss": "CFl1X-D0_y0U_n33d_4_l@WY3r_",
-    "p6_postit": "CFl1X-R35p3c7_my_4u7h0r1t4h",   # == mot de passe SSH de cartman
+    "p6_postit": "CFl1X-R35p3c7_my_4u7h0r1t4h",   # == cartman's SSH password
     "p8_lfi": "CFl1X-Lf1_4r3_l1K3_z0mB1z__Bu11sh17",
     "p9_passphrase": "CFl1X-1m_M_n07_g0nN@_d13_h3r3",
     "p10_nuclear": "CFl1X-W3_d0n'7_sUbM17_70_73Rr0r_w3_m@k3_7h3_73rr0R",
@@ -54,22 +55,22 @@ CARTMAN_PASSWORD = FLAGS["p6_postit"]
 
 
 def _rand_user():
-    # AllowedUserNameCharacters n'autorise que les minuscules + -._ (pas de chiffres).
+    # AllowedUserNameCharacters only permits lowercase letters + -._ (no digits).
     return "".join(random.choice(string.ascii_lowercase) for _ in range(10))
 
 
 def _csrf(sess, url):
     r = sess.get(url)
     m = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]+)"', r.text)
-    assert m, f"jeton anti-CSRF introuvable sur {url}"
+    assert m, f"anti-CSRF token not found on {url}"
     return m.group(1)
 
 
 def new_session(elevate_alpha=False):
-    """Crée un utilisateur local, accepte le règlement, renvoie la session.
+    """Create a local user, accept the rules, return the session.
 
-    Si elevate_alpha=True, exploite le Mass Assignment (épreuve 4) pour passer
-    le compte en Alpha (nécessaire pour les épreuves 6/7/8 côté Viewer).
+    If elevate_alpha=True, exploit the mass assignment (challenge 4) to turn the
+    account into Alpha (required for the Viewer side of challenges 6/7/8).
     """
     s = requests.Session()
     s.verify = False
@@ -82,7 +83,7 @@ def new_session(elevate_alpha=False):
         "__RequestVerificationToken": tok,
     })
     assert r.url.rstrip("/").endswith("/Rules") or "Rules" in r.url, \
-        f"inscription échouée (redirigé vers {r.url})"
+        f"registration failed (redirected to {r.url})"
 
     tok = _csrf(s, f"{CFLIX_URL}/Rules")
     s.post(f"{CFLIX_URL}/Rules/AcceptRules",
@@ -96,7 +97,7 @@ def new_session(elevate_alpha=False):
         s.post(f"{CFLIX_URL}/Profile/me/Edit", data={
             "DisplayName": dn.group(1) if dn else user,
             "AvatarType": av.group(1) if av else "0",
-            "AccountType": "Alpha",               # <-- champ non prévu : mass assignment
+            "AccountType": "Alpha",               # <-- unexpected field: mass assignment
             "__RequestVerificationToken": tok,
         })
     s.user = user
@@ -105,11 +106,11 @@ def new_session(elevate_alpha=False):
 
 @pytest.fixture(scope="session")
 def user_session():
-    """Session utilisateur standard (connecté, règlement accepté)."""
+    """Standard user session (logged in, rules accepted)."""
     return new_session(elevate_alpha=False)
 
 
 @pytest.fixture(scope="session")
 def alpha_session():
-    """Session élevée en Alpha via le mass assignment (épreuve 4)."""
+    """Session elevated to Alpha via the mass assignment (challenge 4)."""
     return new_session(elevate_alpha=True)

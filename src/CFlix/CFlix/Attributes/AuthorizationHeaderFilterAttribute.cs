@@ -38,7 +38,7 @@ namespace CFlix.Attributes
             {
             }
 
-            // j'ai rajouté la vérification par hash au cas où le code source serait trouvé par des petits malins :P
+            // I added the hash check in case the source code gets found by sneaky people :P
             private string GenerateHash(string clear)
             {
                 return BitConverter.ToString(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(clear)))

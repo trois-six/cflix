@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Monte la stack, initialise la base, puis lance la suite de tests d'intégration.
+# Bring up the stack, initialize the database, then run the integration suite.
 #
 #   ./tests/run.sh            # build + up + seed + pytest
-#   SKIP_BUILD=1 ./tests/run.sh   # réutilise les conteneurs déjà lancés
+#   SKIP_BUILD=1 ./tests/run.sh   # reuse the already-running containers
 #
 set -euo pipefail
 
@@ -19,23 +19,23 @@ if [ "${SKIP_BUILD:-0}" != "1" ]; then
   docker compose up -d
 fi
 
-echo "==> attente des bases de données"
+echo "==> waiting for the databases"
 for _ in $(seq 1 60); do
   if docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1 \
      && docker compose exec -T mysql mysqladmin ping -uroot -pmysql_password >/dev/null 2>&1; then
-    echo "    bases prêtes"
+    echo "    databases ready"
     break
   fi
   sleep 2
 done
 
-echo "==> initialisation de la base (migrations + seed)"
+echo "==> initializing the database (migrations + seed)"
 docker compose exec -T cflix dotnet CFlix.dll database update all
 
-echo "==> attente du site CFlix"
+echo "==> waiting for the CFlix site"
 for _ in $(seq 1 30); do
   code=$(curl -sk -o /dev/null -w "%{http_code}" https://localhost/Login || true)
-  [ "$code" = "200" ] && { echo "    site prêt"; break; }
+  [ "$code" = "200" ] && { echo "    site ready"; break; }
   sleep 2
 done
 

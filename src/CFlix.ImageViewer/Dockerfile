@@ -21,8 +21,8 @@ RUN apt-get update \
     && useradd -ms /bin/bash negan \
     && usermod -a -G pcap cartman \
     && ln -s /usr/bin/tcpdump /usr/local/bin/tcpdump \
-    # Mot de passe de cartman (épreuve 7) : hash moderne (yescrypt, défaut
-    # Debian) au lieu de l'ancien crypt DES. Le mot de passe reste identique.
+    # cartman's password (challenge 7): modern hash (yescrypt, the Debian
+    # default) instead of the old DES crypt. The password itself is unchanged.
     && echo 'cartman:CFl1X-R35p3c7_my_4u7h0r1t4h' | chpasswd
 
 COPY [ "Dockerfiles/motd-challenge", "Dockerfiles/motd", "/etc/" ]

@@ -229,22 +229,22 @@ namespace CFlix.Data
 
 
             // Les challs Step 03
-            var chall9 = await CreateEasterEgg(new EasterEgg("La contre-attaque", // SnK faille cookie -> mdp du certificat de connexion
+            var chall9 = await CreateEasterEgg(new EasterEgg("La contre-attaque", // SnK: cookie flaw -> password of the connection certificate
                 EasterEggType.Challenge,
                 "Si tu gagnes, tu vies. Si tu perds, tu meurs. Si tu ne te bats pas, tu ne peux pas gagner !",
                 "2c38271b48f19adb76141543c33c36fdeb7c77b473492dd255c89f839bac5f49"));
 
-            var chall10 = await CreateEasterEgg(new EasterEgg("La vérité éclate", // HoC launchnb 
+            var chall10 = await CreateEasterEgg(new EasterEgg("La vérité éclate", // HoC: launchnb
                 EasterEggType.Challenge,
                 "Nous avons identifié qui est hackonymousoflix !",
                 "2fe1da96abac3d04780d57c5e6f9789e4ed41c6d557e008c3f8619e7754a977f"));
             
-            var chall11 = await CreateEasterEgg(new EasterEgg("C étrange tout cela", // ST ecrit dans la todolist
+            var chall11 = await CreateEasterEgg(new EasterEgg("C étrange tout cela", // ST: written in the todolist
                 EasterEggType.Challenge,
                 "Mais que doit-il donc faire de si important ??",
                 "f573f23afbadb75a92d69b4786f2177112d37ee17a39f1411130d4c9ae83b20e"));
             
-            var chall12 = await CreateEasterEgg(new EasterEgg("La boucle est bouclée", // M.R a récupérer sur le shop
+            var chall12 = await CreateEasterEgg(new EasterEgg("La boucle est bouclée", // M.R: to retrieve on the shop
                 EasterEggType.Challenge,
                 "Et devient calife à la place du calife !",
                 "42c86cbc31481423221c043c66c2049faff4b08bf7c1ed3be639f3cae189abbf"));

@@ -34,9 +34,9 @@ RUN npm install \
 EXPOSE 845
 
 # chall 11 Exploit C
-# NOTE: -no-pie est indispensable : le write-up d'origine s'appuie sur l'adresse
-# fixe de `faille` (ret2win via objdump). Sans cela, gcc moderne (PIE par défaut)
-# rendrait le binaire non exploitable tel que documenté.
+# NOTE: -no-pie is mandatory: the original write-up relies on the fixed address
+# of `faille` (ret2win via objdump). Without it, a modern gcc (PIE by default)
+# would make the binary non-exploitable as documented.
 WORKDIR /home/will.byers
 COPY src-chall11 .
 RUN gcc -o exploit exploit.c -fno-stack-protector -fno-pie -no-pie -Wl,-z,relro,-z,now,-z,noexecstack \

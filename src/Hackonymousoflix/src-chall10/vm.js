@@ -26,10 +26,10 @@ vorpal
       algorithm = 'aes-256-ctr',
       masterkey = process.env.NUCLEAR_BOMB_ACCESS;
 
-    // crypto.createCipher a été supprimé à partir de Node 18. On reproduit à
-    // l'identique son ancienne dérivation de clé (EVP_BytesToKey/MD5, sans sel)
-    // via createCipheriv, afin que le même mot de passe produise toujours le
-    // même hash (l'easter egg reste strictement inchangé).
+    // crypto.createCipher was removed in Node 18+. We reproduce its old key
+    // derivation exactly (EVP_BytesToKey/MD5, no salt) through createCipheriv,
+    // so the same password still yields the same hash (the easter egg is left
+    // strictly unchanged).
     function legacyKDF(password, keyLen, ivLen) {
       var data = Buffer.alloc(0), prev = Buffer.alloc(0);
       var pass = Buffer.from(password, 'binary');

@@ -84,7 +84,7 @@ namespace CFlix
                 options.LogoutPath = new Microsoft.AspNetCore.Http.PathString("/Account/Logout");
                 options.AccessDeniedPath = new Microsoft.AspNetCore.Http.PathString("/Error/403");
 
-                // FAILLE XSS
+                // XSS FLAW
                 options.Cookie.HttpOnly = false;
             });
 

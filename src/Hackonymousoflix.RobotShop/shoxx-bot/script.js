@@ -1,18 +1,18 @@
-// ShoxxBot — simule l'administrateur du RobotShop.
-// Il consulte régulièrement la page /read.php (qui affiche les messages reçus)
-// en portant le cookie d'administration. Si un message contient un XSS,
-// celui-ci s'exécute dans son navigateur (faiblesse volontaire du challenge).
+// ShoxxBot — simulates the RobotShop administrator.
+// It regularly visits /read.php (which displays the messages it received)
+// while carrying the admin cookie. If a message contains an XSS payload, it
+// executes in its browser (an intentional weakness of the challenge).
 //
-// À l'origine ce bot était écrit avec casperjs/PhantomJS (désormais obsolète),
-// on le réimplémente ici avec Puppeteer (headless Chrome) tout en conservant
-// le comportement exact qui rend l'épreuve 12 exploitable.
+// This bot was originally written with casperjs/PhantomJS (now obsolete); it
+// is reimplemented here with Puppeteer (headless Chrome) while keeping the
+// exact behavior that makes challenge 12 exploitable.
 
 const puppeteer = require('puppeteer');
 
 const host = 'robotshop';
 const url = 'http://' + host + '/read.php';
 const timeout = 3000;
-const repeatcount = Math.floor((7 * 24 * 3600) / timeout); // une semaine de tentatives, puis restart
+const repeatcount = Math.floor((7 * 24 * 3600) / timeout); // one week of attempts, then restart
 
 (async () => {
     const browser = await puppeteer.launch({
@@ -21,7 +21,7 @@ const repeatcount = Math.floor((7 * 24 * 3600) / timeout); // une semaine de ten
 
     const page = await browser.newPage();
 
-    // Cookie d'administration (identique à l'original)
+    // Admin cookie (identical to the original)
     await page.setCookie({
         name: 'adminCookie',
         value: 'SGVsbG8sIGMnZXN0IFJlbWksIGFuY2llbiBkZSBsYSB0ZWFtIHNlY3UK',

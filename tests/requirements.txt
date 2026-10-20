@@ -3,6 +3,6 @@ requests>=2.31
 beautifulsoup4>=4.12
 lxml>=5
 paramiko>=3.4
-# scapy est optionnel : il n'est utilisé que pour décoder le pcap de l'épreuve 7.
-# S'il est absent, le test récupère quand même le pcap et saute le décodage.
+# scapy is optional: it is only used to decode the challenge 7 pcap.
+# If it is missing, the test still retrieves the pcap and skips the decoding.
 scapy>=2.5
