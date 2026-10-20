@@ -1,36 +1,49 @@
-var casper = require('casper').create({
-    verbose: true,
-    logLevel: "debug"
-});
+// ShoxxBot — simule l'administrateur du RobotShop.
+// Il consulte régulièrement la page /read.php (qui affiche les messages reçus)
+// en portant le cookie d'administration. Si un message contient un XSS,
+// celui-ci s'exécute dans son navigateur (faiblesse volontaire du challenge).
+//
+// À l'origine ce bot était écrit avec casperjs/PhantomJS (désormais obsolète),
+// on le réimplémente ici avec Puppeteer (headless Chrome) tout en conservant
+// le comportement exact qui rend l'épreuve 12 exploitable.
 
-casper.on("resource.error", function (resourceError) {
-    console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
-    console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
-});
+const puppeteer = require('puppeteer');
 
-var host = "robotshop";
-var url = "http://" + host + "/read.php";
-var timeout = 3000;
-var repeatcount = (7 * 24 * 3600) / timeout; // we try for a continuous week, after the container will restart
+const host = 'robotshop';
+const url = 'http://' + host + '/read.php';
+const timeout = 3000;
+const repeatcount = Math.floor((7 * 24 * 3600) / timeout); // une semaine de tentatives, puis restart
 
-phantom.addCookie({
-    'name': 'adminCookie',
-    'value': 'SGVsbG8sIGMnZXN0IFJlbWksIGFuY2llbiBkZSBsYSB0ZWFtIHNlY3UK',
-    'domain': host,
-    'path': '/',
-    'httponly': false
-});
+(async () => {
+    const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--ignore-certificate-errors']
+    });
 
+    const page = await browser.newPage();
 
-casper.start(url).repeat(repeatcount, function () {
-    var str = this.getHTML('body').trim();
-    if (!(!str)) {
-        this.echo(str);
+    // Cookie d'administration (identique à l'original)
+    await page.setCookie({
+        name: 'adminCookie',
+        value: 'SGVsbG8sIGMnZXN0IFJlbWksIGFuY2llbiBkZSBsYSB0ZWFtIHNlY3UK',
+        domain: host,
+        path: '/',
+        httpOnly: false
+    });
+
+    for (let i = 0; i < repeatcount; i++) {
+        try {
+            await page.goto(url, { waitUntil: 'load', timeout: 10000 });
+
+            const str = await page.evaluate(() => document.body.innerHTML.trim());
+            if (str) {
+                console.log(str);
+            }
+        } catch (e) {
+            console.log('Unable to load resource: ' + e.message);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, timeout));
     }
 
-    this.wait(timeout, function () {
-        this.reload();
-    });
-});
-
-casper.run();
+    await browser.close();
+})();

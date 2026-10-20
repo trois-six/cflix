@@ -1,8 +1,6 @@
-FROM zopanix/casperjs
+FROM ghcr.io/puppeteer/puppeteer:latest
+WORKDIR /app
+COPY package.json ./
+RUN npm install
 COPY script.js .
-CMD [ "--ignore-ssl-errors=true", \
-      "--local-to-remote-url-access=true", \
-      "--web-security=false", \
-      "--ssl-protocol=any", \
-      "--log-level=error", \
-      "script.js"]
+CMD ["node", "script.js"]
