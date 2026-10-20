@@ -1,63 +1,81 @@
-# CFlix : Challenge de sécurité SI 2017
+# CFlix: an IT security challenge
 
-CFlix est un projet réalisé début 2017 à Cdiscount afin de sensibiliser les développeurs de la DSI aux problématiques de sécurité informatique. Pour cela, un concours de 3 semaines a été mis en place, le but pour les participants étant d'être le premier à résoudre l'ensemble des épreuves.
+CFlix is a self-hostable, hands-on IT security challenge. Each exercise
+reproduces a specific flaw and shows how an attacker goes about exploiting it.
+Every challenge illustrates an item of the
+[OWASP Top Ten](https://owasp.org/www-project-top-ten/) — the reference list of
+the most common security flaws found on the web.
 
-Les épreuves proposées ont quant à elles pour but de faire comprendre aux participants comment un attaquant s'y prend pour exploiter les failles. Ainsi chacune des épreuves expose un point spécifique du [top ten OWASP](https://www.owasp.org/index.php/Top_10_2013-Top_10) - fichier de référence des failles de sécurité les plus couramment rencontrés sur internet.
+Spin it up with Docker and try to solve them all.
 
 ---
 
-Ce repository contient donc toutes les sources qui ont servis à la réalisation de ce challenge sécurité. Il est découpé en deux parties.
+This repository is split in two parts.
 
-Dans la partie [docs](docs) vous trouverez l'explication des épreuves, ainsi que leur résolution. Mais aussi certains des documents utilisés pour réaliser la campagne de communication.
+The [docs](docs) part contains the explanation of the challenges and how they
+are solved.
 
-Dans la partie [src](src) vous trouverez les sources des différents projets composant l'ensemble des épreuves.
+The [src](src) part contains the sources of the different projects that make up
+the challenges.
 
-## Explication du scénario
+## Scenario
 
-Le projet initial est celui de CFlix, il s'agit d'un site de streaming qui vient juste de s'ouvrir et qui propose à ces utilisateurs d'accéder aux dernières saisons de leurs séries favorites.
+The starting point is CFlix, a streaming website that has just launched and
+lets its users access the latest seasons of their favorite TV shows.
 
-![JustDecompile Ressources](docs/images/home_example.png)
+![CFlix home page](docs/images/home_example.png)
 
-Cependant, un hacker de pseudo Hackonymousoflix (Vilain Petit Canard) a réussi à trouver des failles sur le site et s'est amusé à les exploiter...
+A hacker nicknamed Hackonymousoflix (the Ugly Duckling) found flaws on the site
+and had fun exploiting them...
 
-Les participants doivent donc résoudre les différentes épreuves disponibles pour comprendre comment il s'y est pris pour prendre le contrôle de la plateforme.
-Puis dans un second temps, les participants doivent s'attaquer à l'attaquant et donc exploiter les serveurs d'Hackonymousoflix.
+You must solve the various challenges to understand how he took control of the
+platform. Then, in a second stage, you turn the tables on the attacker and
+exploit Hackonymousoflix's own servers.
 
-Le rythme des épreuves était prévu pour se dérouler sur 3 semaines avec quatre nouvelles épreuves disponibles chaque semaine.
+NB: each TV show available on CFlix maps to one main challenge.
 
-Des épreuves bonus sont également disponibles et sont au nombre de cinq.
+The challenges are grouped into three stages that you can unlock progressively
+(see [src/README.md](src/README.md)). Five bonus challenges are also available.
 
-NB : A chaque série disponible sur CFlix correspond une épreuve principale.
+## Architecture and deployment
 
-## Architecture et Déploiement du projet
+The project is split into three main projects: CFlix, Hackonymousoflix and
+Hackonymousoflix.RobotShop.
 
-Le projet se découpe principalement en 3 projets : CFlix, Hackonymousoflix et Hackonymousoflix.RobotShop.
+- **CFlix** is an ASP.NET Core (.NET 10) application, to demonstrate how a flaw
+  can be introduced in a C# application.
+- **Hackonymousoflix** focuses on Node.js and system exploitation (binary
+  exploitation).
+- **Hackonymousoflix.RobotShop** provides a last challenge written in PHP.
 
-Le premier a été réalisé en ASP .NET Core 1.1 (puis migré en 2.0) afin de démontrer comment une faille peut être inséré dans une application développé en C#.
+All these projects are packaged as containers, and a
+[docker-compose](src/docker-compose.yml) file describes the interactions and the
+layout between them.
 
-Le second s'axe sur le développement en NodeJS et de l'exploitation système (exploit de binaire)
+To run the whole project, follow the steps described in the [CFlix](src/README.md)
+documentation.
 
-Le troisième propose une dernière épreuve en PHP.
+## External resources
 
-Quoiqu'il en soit, tous ces différents projets ont été packagé en container et un [docker-compose](src/docker-compose.yml) est présent pour vous expliquer les interactions et l'organisation mise en place entre eux.
+The images used for the TV shows come from [The Movie DB](https://www.themoviedb.org/).
 
-Pour pouvoir lancer le projet dans son intégralité, il suffit d'effectuer les manipulations décrites dans la doc de [CFlix](src/README.md).
+The icons used for the easter eggs come from [FlatIcon](https://www.flaticon.com/),
+except for the `La contre-attaque` easter egg, which comes from the anime Attack
+on Titan (Shingeki no Kyojin) and was redrawn in vector format.
 
-## Ressources externes utilisées
+## Try it yourself
 
-Pour la réalisation de ce projet, les images utilisées pour les séries proviennent du site [The Movie DB](https://www.themoviedb.org/)
-
-Les icônes utilisées pour les Easter Eggs proviennent du site [FlatIcon](http://www.flaticon.com/) sauf pour l'Easter Egg `La contre-attaque` qui provient de la série l'attaque des titans (Shingeki No Kyojin) qui a été refaite au format vectoriel
-
-## Essayer par vous-même
-
-Pour le tester localement, vous pouvez exécuter les commandes suivantes :
+To run it locally:
 
 ```bash
 cd src
-docker-compose build
-docker-compose up -d
-docker-compose exec cflix dotnet CFlix.dll database update all
+docker compose build
+docker compose up -d
+docker compose exec cflix dotnet CFlix.dll database update all
 ```
 
-Puis il faut naviguer sur `https://localhost/`
+Then browse to `https://localhost/`.
+
+To verify that every intentional flaw and easter egg still works, an automated
+integration test suite is available under [tests](tests) (see
+[tests/README.md](tests/README.md)).

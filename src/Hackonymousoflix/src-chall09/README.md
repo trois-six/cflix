@@ -18,10 +18,10 @@
 　　＿_jニﾆﾆﾆﾆﾆﾆﾆﾆﾆ=-　-=ﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆニ二∧
 　/ﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆ=-　-=ﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆﾆニ二∧
 
-# Connexion sur le serveur
+# Connecting to the server
 
-Pour se connecter sur le serveur il faut utiliser la clé privé `id_rsa` à l'adresse suivante :
+To connect to the server, use the `id_rsa` private key at the following address:
 
-- address : ssh://{hackonymousoflix}:845
-- username : hackonymousoflix
+- address: ssh://{hackonymousoflix}:845
+- username: hackonymousoflix
 - passphrase: CFl1X-1m_M_n07_g0nN@_d13_h3r3

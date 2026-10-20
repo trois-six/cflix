@@ -1,49 +1,66 @@
 ﻿# Hackonymousoflix
 
-Ce conteneur correspond au serveur de l'attaquant dans le scénario global.
+This container is the attacker's server in the overall scenario.
 
-Il regroupe les épreuves 9, 10 et 11 :
+It groups challenges 9, 10 and 11:
 
-- La contre-attaque (Shingeki no Kyojin) :  Exploitation de la désérialization JavaScript par NodeJS
-- La vérité éclate (House of Cards) : Exploitation d'une jail JavaScript
-- C étrange tout cela (Stranger Things) : Exploitation d'un binaire codé en C
+- La contre-attaque (Shingeki no Kyojin): exploiting JavaScript deserialization in Node.js
+- La vérité éclate (House of Cards): escaping a JavaScript jail
+- C étrange tout cela (Stranger Things): exploiting a binary written in C
 
-NB : Le serveur web derrière l'épreuve 9 peut être aussi utilisé par les épreuves 1 et 2 (pour les failles XSS). Cependant pour que ces deux épreuves fonctionnent correctement il faut l'exposer en HTTPS (chrome bloque les requêtes xhr non sécurisées). Pour cela il faudrat passer par le reverse-proxy !
+NB: the web server behind challenge 9 can also be used by challenges 1 and 2
+(for the XSS flaws). However, for those two challenges to work correctly it must
+be exposed over HTTPS (Chrome blocks insecure XHR requests), which means going
+through the reverse-proxy!
 
-## Détails des épreuves
+## Challenge details
 
-### Epreuve 9 : La contre-attaque (Shingeki no Kyojin)
+### Challenge 9: La contre-attaque (Shingeki no Kyojin)
 
-Le but de cette épreuve est d'exploiter la vieille route `https://{hackonymousoflix}:1337/cookie` encore présente dans le code du serveur afin de récupérer les credentials pour accèder à l'épreuve suivante.
+The goal of this challenge is to exploit the old `https://{hackonymousoflix}:1337/cookie`
+route still present in the server code, in order to recover the credentials
+needed to reach the next challenge.
 
-> Vous vous souvenez de son XSS sur Better Call Saul et Game of Thrones ? Eh bien, on pense avoir trouvé une faille dessus !
+> Remember his XSS on Better Call Saul and Game of Thrones? Well, we think we
+> found a flaw in it!
 >
-> En effet, il semblerait qu'une v1 de son service soit encore dispo et celle-ci serait exploitable. Pour cela, il faut envoyer un JSON en POST à l'addresse `https://{hackonymousoflix}:1337/cookie`
+> It looks like a v1 of his service is still available and exploitable. To do
+> so, send a JSON POST request to `https://{hackonymousoflix}:1337/cookie`.
 >
-> Ah ! de ce que nous savons, son service tournerait en nodejs et il semblerait que ça aurait avoir avec de la désérialization... Bon courage !
+> Oh! From what we know, his service runs on Node.js and it seems to have
+> something to do with deserialization... Good luck!
 
-NB : La route `https://{hackonymousoflix}:1337/cooooookie` est utilisée par les épreuves 1 et 2 (pour la réalisation de failles XSS) 
+NB: the `https://{hackonymousoflix}:1337/cooooookie` route is used by challenges
+1 and 2 (for the XSS flaws).
 
 
-### Epreuve 10 : La vérité éclate (House of Cards)
+### Challenge 10: La vérité éclate (House of Cards)
 
-Pour accéder à cette épreuve il faut donc utiliser les informations trouvées lors de l'épreuve précédente. Donc il faut se connecter en ssh sur le port 845.
+To reach this challenge you must use the information found in the previous one,
+so you have to connect over SSH on port 845.
 
-> Nous avons eu besoin d'un peu de temps pour nous remettre de nos émotions mais ça devrait aller maintenant. Il va falloir réussir à sortir de cette vm JS maintenant au boulot sire !
+> We needed a bit of time to recover from our emotions, but it should be fine
+> now. You will have to manage to get out of this JS vm — to work, sire!
 
-Une fois connecté, on constate que l'on n'obtient pas un shell bash classique mais que l'on est dans un environnement bien particulier. Il faudra donc trouver comment en sortir afin d'aller lire le code source de ce shell (`vm.js`) et ainsi trouver le mot de passe permettant d'obtenir la dernière commande nous donnant accès à un vrai bash.
+Once connected, you notice you do not get a regular bash shell but a very
+peculiar environment. You have to find how to escape it to read the source of
+this shell (`vm.js`) and thus find the password that unlocks the last command,
+granting access to a real bash.
 
-### Epreuve 11 : C étrange tout cela (Stranger Things)
+### Challenge 11: C étrange tout cela (Stranger Things)
 
-Maintenant que nous avons récupéré un shell bash, il va nous rester une dernière petite chose à réaliser : aller lire le fichier `MyLittleToDoList.txt` présent dans le dossier du user `will.byers`.
+Now that we have a bash shell, one last little thing remains: read the
+`MyLittleToDoList.txt` file in the `will.byers` user's home directory.
 
-> Bon allez rattrapez-vous et faites le nécessaire pour usurper will et vous aurez accès à cette to-do list. Quelque chose me dit que nous ne sommes plus très loin de la fin !
+> Come on, make it up and do what is needed to impersonate will and you will get
+> access to this to-do list. Something tells me we are not far from the end!
 
-Pour cela, il faut exploiter le binaire ... `exploit` car celui-ci possède les droits nécessaires à la lecture du fichier.
+To do this, you have to exploit the `exploit` binary, since it has the
+permissions required to read the file.
 
 ## Build & Run
 
-Il est possible de faire tourner ce conteneur en stand-alone en exécutant les commandes suivantes :
+You can run this container stand-alone with the following commands:
 
 ```bash
 docker build -t hackonymousoflix .

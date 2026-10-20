@@ -1,40 +1,60 @@
-# Faille 1 & 2 : XSS
-Dans le fichier `Startup.cs`, on a désactivé la sécurisation des cookies :
+---
+type: Explanation
+title: CFlix flaws explanation
+description: How each intentional vulnerability of the CFlix challenge was introduced, and how it should be fixed.
+tags: [security, owasp, challenge, writeup]
+---
+
+# Flaws 1 & 2: XSS
+
+In `Startup.cs`, cookie protection was disabled:
 
 ```csharp
 options.Cookies.ApplicationCookie.CookieHttpOnly = false;
 ```
 
-et dans l'affichage, utilisation du `Html.Raw` :
+and in the view, `Html.Raw` is used:
 
 ```asp
 <div class="text">@Html.Raw(review.Content)</div>
 ```
 
 
-# Faille 3 : SQLi
-Dans le fichier `Services/Repositories/MediaRepository.cs`, mauvaise utilisation des requêtes SQL :
+# Flaw 3: SQLi
+
+In `Services/Repositories/MediaRepository.cs`, SQL queries are misused:
 
 ```csharp
 return await _context.Medias.FromSql($"SELECT Id, ImageUri, Title, Type, YouTubeId, ReleaseDate FROM Medias WHERE Title LIKE '%{query}%'")
 ```
 
-Ici la requête semble valide cependant la string interpolation de C# 7 agit comme une simple concaténation de la variable query à la requête. Celle-ci n'est pas "préparée" correctement par le framework, il vaut donc mieux préférer la syntaxe suivante :
+The query looks valid, but C# 7 string interpolation acts here as a plain
+concatenation of the `query` variable into the request. It is not "prepared"
+correctly by the framework, so the following syntax should be preferred instead:
 
 ```csharp
 return await _context.Medias.FromSql("SELECT Id, ImageUri, Title, Type, YouTubeId, ReleaseDate FROM Medias WHERE Title LIKE '%{@query}%'", new SqlParameter("@query", query))
-// ou
+// or
 return await _context.Medias.FromSql("SELECT Id, ImageUri, Title, Type, YouTubeId, ReleaseDate FROM Medias WHERE Title LIKE '%{0}%'", query)
 ```
 
+(In the modernized code the vulnerable call uses `FromSqlRaw` with string
+concatenation; the safe fix is `FromSqlInterpolated` or a parameterized
+`FromSqlRaw`.)
 
-# Faille #4 : Misconfiguration
-La première erreur qui a été faite sur cette épreuve est d'avoir fait une mise en prod en laissant la variable d'environnement `ASPNETCORE_ENVIRONMENT=Development` dans le fichier `docker-compose.override.yml` (non visible dans cette version du code)
-Cela a ainsi permi à Vilain Petit Canard d'obtenir des informations importantes sur l'environnement (et donc allez chercher les fichiers sur le NAS aussi facilement)
 
-La deuxième erreur aura été de croire que stocker les chaines de connexions dans les ressources d'une application était suffisant pour les sécuriser.
+# Flaw 4: Misconfiguration
 
-![JustDecompile Ressources](images/chall_04.png)
+The first mistake on this challenge was to ship to production while leaving the
+`ASPNETCORE_ENVIRONMENT=Development` environment variable in
+`docker-compose.override.yml` (not visible in this version of the code). This
+let the Ugly Duckling obtain important information about the environment (and
+therefore reach the files on the NAS that much more easily).
+
+The second mistake was to believe that storing the connection strings inside an
+application's resources was enough to secure them.
+
+![JustDecompile resources](images/chall_04.png)
 
 ```csharp
 public Startup(IHostingEnvironment env)
@@ -43,16 +63,23 @@ public Startup(IHostingEnvironment env)
         .SetBasePath(env.ContentRootPath)
         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
         .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-        .AddFromZipRessource("settings", "appsettings.json") // <- c'était la ligne intéressante permettant de déterminer le format du fichier de configuration
+        .AddFromZipRessource("settings", "appsettings.json") // <- this was the interesting line, revealing the format of the configuration file
         .AddEnvironmentVariables();
     Configuration = builder.Build();
 }
 ```
-Dans ce-cas là, il vaut mieux utiliser d'autre moyen pour stocker les chaines de connection comme les variables d'environnements qui elle ne seront pas présente physiquement sur le disque.
+
+In that case, it is better to use other means to store connection strings, such
+as environment variables, which are not physically present on disk.
 
 
-# Faille #5 : Mass Assignment
-Dans ce cas-là le problème ne saute pas directement au yeux. Cependant un problème est à noté. Nous utilisons l'objet `ProfileViewModel` qui initialement n'étais pas prévu pour la requête Edit mais pour la méthode Index pour permettre d'afficher les informations sur la page `/User/Me`. Du coup, cet objet accepte le paramètre `AccountType` même si on ne l'a pas spécifié dans la view du formulaire d'édition.
+# Flaw 5: Mass Assignment
+
+Here the problem is not immediately obvious, but there is one. We use the
+`ProfileViewModel` object, which was initially not meant for the Edit request
+but for the Index method, to display information on the `/User/Me` page. As a
+result, this object accepts the `AccountType` parameter even though it is not
+declared in the edit form view.
 
 ```csharp
 public async Task<IActionResult> Edit(ProfileViewModel profile)
@@ -81,13 +108,15 @@ public static void UpdateWithProfileViewModel(this CFlixUser user, ProfileViewMo
 }
 ```
 
-Il vaut mieux refaire un deuxième model pour s'assurer des éléments que l'on récupére auprès de l'utilisateur.
+It is better to create a second, dedicated model to control exactly which fields
+are taken from the user.
 
 
-# Faille #6 : LFI - Directory Transversal 
->  **Never trust user input !**
+# Flaw 6: LFI - Directory Traversal
+>  **Never trust user input!**
 
-Dans ce cas-là, une directory transversal a été introduite, juste en réutilisant les données reçu en paramètres sans les vérifier au préalable.
+Here a directory traversal was introduced simply by reusing the parameters
+received without validating them first.
 
 ```csharp
 public IActionResult Index(string mediaId, string image)
@@ -109,8 +138,8 @@ public IActionResult Index(string mediaId, string image)
 }
 ```
 
-Si vous avez besoin de faire ce genre de manipulation, le framework ASP .Net Core vous propose une manière bien plus sécurisé de le faire :
-Dans le fichier `Startup.cs`
+If you need to do this kind of thing, ASP.NET Core offers a much safer way.
+In `Startup.cs`:
 ```csharp
         public void ConfigureServices(IServiceCollection services)
         {
@@ -118,7 +147,7 @@ Dans le fichier `Startup.cs`
             services.AddSingleton(_hostingEnvironment.WebRootFileProvider);
         }
 ```
-Et dans le controller :
+And in the controller:
 ```csharp
 public class ViewerController : Controller
 {
@@ -141,15 +170,23 @@ public class ViewerController : Controller
     }
 }
 ```
-La classe [PhysicalFileProvider](http://https://docs.microsoft.com/en-us/aspnet/core/fundamentals/file-providers) permet donc d'explorer le système de fichier local de manière sécurisé. Il permet notamment de scoper l'arborescence explorable à un dossier spécifié et tout ses descendants.
+The [PhysicalFileProvider](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/file-providers)
+class lets you browse the local file system safely. In particular, it scopes the
+browsable tree to a specified directory and all of its descendants.
 
 
-# Faille #7 #8
-Ces failles ne seront pas débattus ici, elle n'avait pas de rapport direct avec la programmation
+# Flaws 7 & 8
+
+These flaws are not discussed here; they had no direct relation to programming.
 
 
-# Faille #9 Component with know vulnerability : CVE-2017-5941
-La faille exploité ici se situe dans le code en NodeJS. nous utilisons la library `node-serialize` qui possède une vulnérabilité permet d'éxécuter du code JS à l'aide des IIFE (Immediately Invoked Function Expression). Voir [la CVE-2017-5941](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5941) pour plus d'information.
+# Flaw 9: Component with a known vulnerability — CVE-2017-5941
+
+The flaw exploited here is in the Node.js code. We use the `node-serialize`
+library, which has a vulnerability allowing arbitrary JS execution through IIFEs
+(Immediately Invoked Function Expressions). See
+[CVE-2017-5941](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5941)
+for more information.
 
 ```javascript
 var serialize = require('node-serialize');
@@ -162,11 +199,16 @@ app.post('/cookie', function (req, res) {
     }
 });
 ```
-Il faut donc éviter d'utiliser cette library et de manière général faire attention aux données reçu par l'utilisateur
+
+So this library should be avoided and, more generally, always be careful with
+data received from the user.
 
 
-# Faille #10
-Cette fois-ci le problème se situe dans la lib `vm`. Celle-ci bien que faisant partie de node posséde un problème connu qui permet de s'echapper du context que l'on créé et permet ainsi de se retrouver directement dans le contexte principal de l'application.
+# Flaw 10
+
+This time the problem is in the `vm` library. Even though it is part of Node, it
+has a known issue that allows escaping the context you create, landing directly
+in the application's main context.
 
 ```javascript
 var vm = require("vm");
@@ -175,12 +217,15 @@ var script = new vm.Script(arg.arg);
 var context = new vm.createContext({});
 var t = script.runInNewContext(context);
 ```
-Il vaut mieux préférer la lib `vm2` qui elle est plus sécurisé par défaut.
+
+The `vm2` library should be preferred, as it is safer by default.
 
 
-# Faille #11 : Binary Exploit
-Nous avons cette fois-ci à notre disposition, un code écrit en C.
-Celui-ci a un problème nous ne vérifions pas la longueur des données saisis par l'utilisateur. Ce qui fait qu'il peut très facilement faire un buffer-overflow.
+# Flaw 11: Binary exploit
+
+This time we have a piece of C code at our disposal. It has a problem: it does
+not check the length of the data entered by the user, which makes a buffer
+overflow very easy.
 
 ```C
 int main(int argc, char **argv)
@@ -190,7 +235,7 @@ int main(int argc, char **argv)
     char buffer[320];
     int size, i;
 
-    scanf("%s", buffer); // <- ici nous avons un problème, il faut vérifier ce qui est saisi par l'utilisateur
+    scanf("%s", buffer); // <- here we have a problem, the user input must be validated
     size = strlen(buffer);
 
     printf("Tu viens de saisir : %s\n", buffer);
@@ -200,4 +245,4 @@ int main(int argc, char **argv)
 ```
 
 
-# Faille #12 : XSS again :)
+# Flaw 12: XSS again :)
