@@ -24,10 +24,8 @@ bld/
 
 # Visual Studio 2015 cache/options directory
 .vs/
-# Uncomment if you have tasks that create the project's static files in wwwroot
-**/wwwroot/lib/*
-*.min.css
-*.min.js
+# Front-end libraries are vendored under wwwroot/lib and committed, so the app
+# is self-contained and does not depend on any external CDN.
 .bowerrc
 **/.bowerrc
 **/appsettings.Development.json
