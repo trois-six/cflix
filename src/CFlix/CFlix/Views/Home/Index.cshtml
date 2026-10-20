@@ -5,9 +5,9 @@
 
 @model IEnumerable<CFlix.Models.Media>
 
-<div class="ui stackable internally celled grid">
+<div class="ui stackable grid">
     <div class="row">
-        <div class="twelve wide column padded">
+        <div class="sixteen wide column padded">
             <div class="ui fluid vertical menu">
                 <form asp-route="Get_Search" method="get" class="item">
                     <div class="ui action input">
@@ -52,10 +52,6 @@
                     }
                 }
             </div>
-        </div>
-
-        <div class="four wide column">
-            <vc:news-release></vc:news-release>
         </div>
     </div>
 </div>
