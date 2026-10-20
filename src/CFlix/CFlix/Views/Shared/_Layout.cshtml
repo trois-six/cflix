@@ -28,7 +28,6 @@
         <script src="~/lib/jquery/dist/jquery.js"></script>
         <script src="~/lib/semantic/dist/semantic.js"></script>
         <script src="~/lib/moment/min/moment-with-locales.js"></script>
-        <script src="~/lib/smooch/dist/smooch.js"></script>
         <script src="~/js/site.js" asp-append-version="true"></script>
     </environment>
     <environment names="Staging,Production">
@@ -49,12 +48,6 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment-with-locales.min.js"
                 asp-fallback-src="~/lib/moment/min/moment-with-locales.min.js"
                 asp-fallback-test="moment"
-                crossorigin="anonymous">
-        </script>
-
-        <script src="https://cdn.smooch.io/smooch.min.js"
-                asp-fallback-src="~/lib/smooch/dist/smooch.js"
-                asp-fallback-test="typeof Smooch !== 'undefined'"
                 crossorigin="anonymous">
         </script>
 
@@ -150,24 +143,6 @@
     </footer>
 
     @RenderSection("Scripts", required: false)
-
-    @if (user != null)
-    {
-        <script>
-            Smooch.init({
-                appToken: 'agvx3ltg2rtmjd12jd5alnjn8',
-                customText: {
-                    headerText: 'CFlix help team',
-                    inputPlaceholder: 'Tapez votre question...',
-                    sendButtonText: 'Envoyez',
-                    introductionText: 'Vous êtes sûr d\'avoir bien cherché ou qu\'il y a un bug "anormal", vous pouvez contacter le support de CFlix ici même.\r\nPS: n\'essayez pas, il n\'y a aucune épreuve ici :P'
-                },
-                givenName: '@user.DisplayName',
-                surname: 'need some help',
-                soundNotificationEnabled: true
-            });
-        </script>
-    }
 
 </body>
 </html>
