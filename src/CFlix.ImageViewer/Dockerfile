@@ -1,33 +1,36 @@
-FROM microsoft/aspnetcore-build:2.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY CFlix.ImageViewer.csproj ./
 RUN dotnet restore
 
 COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet publish -c Release -o /out
 
-FROM microsoft/aspnetcore:2.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
 RUN apt-get update \
     && apt-get install -y openssh-server tcpdump \
     && apt-get dist-upgrade -y \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir /var/run/sshd \
-    && chmod 0755 /var/run/sshd \
+    && mkdir -p /run/sshd \
+    && chmod 0755 /run/sshd \
     && groupadd pcap \
-    && chgrp pcap /usr/sbin/tcpdump \
-    && chmod 750 /usr/sbin/tcpdump \
-    && useradd -ms /bin/bash -p saTZPg3BnObts cartman \
+    && chgrp pcap /usr/bin/tcpdump \
+    && chmod 750 /usr/bin/tcpdump \
+    && useradd -ms /bin/bash cartman \
     && useradd -ms /bin/bash negan \
     && usermod -a -G pcap cartman \
-    && ln -s /usr/sbin/tcpdump /usr/local/bin/tcpdump
+    && ln -s /usr/bin/tcpdump /usr/local/bin/tcpdump \
+    # Mot de passe de cartman (épreuve 7) : hash moderne (yescrypt, défaut
+    # Debian) au lieu de l'ancien crypt DES. Le mot de passe reste identique.
+    && echo 'cartman:CFl1X-R35p3c7_my_4u7h0r1t4h' | chpasswd
 
 COPY [ "Dockerfiles/motd-challenge", "Dockerfiles/motd", "/etc/" ]
 COPY Dockerfiles/sshd_config /etc/ssh/sshd_config
 
 WORKDIR /app
 ARG source
-COPY --from=build /src/out ./
+COPY --from=build /out ./
 COPY Dockerfiles/run.sh Dockerfiles/capture_interessante.pcap ./
 
 RUN chown -R negan:negan /app/* \
@@ -39,15 +42,10 @@ RUN chown -R negan:negan /app/* \
     && chown root:root /app/run.sh \
     && chmod 700 /app/run.sh \
     && chmod +r /app/wwwroot/images/6/*
-    # && chown -R negan:negan /etc/ssh \
-    # && chown -R negan:negan /etc/ssh/sshd_config
-
-# USER negan
 
 EXPOSE 22222
 EXPOSE 5000
 
 WORKDIR /app
 
-# ENTRYPOINT ["dotnet", "CFlix.ImageViewer.dll"]
 CMD ["./run.sh"]
