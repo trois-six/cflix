@@ -1,15 +1,15 @@
-FROM microsoft/aspnetcore-build:2.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY CFlix/CFlix.csproj CFlix/CFlix.csproj
 COPY CFlix.ActiveDirectory.NETStandard/CFlix.ActiveDirectory.NETStandard.csproj CFlix.ActiveDirectory.NETStandard/CFlix.ActiveDirectory.NETStandard.csproj
-COPY *.sln ./
-RUN dotnet restore
+COPY CFlix.sln ./
+RUN dotnet restore CFlix.sln
 
 COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet publish CFlix/CFlix.csproj -c Release -o /out
 
-FROM microsoft/aspnetcore:2.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 EXPOSE 80
-COPY --from=build /src/CFlix/out ./
+COPY --from=build /out ./
 ENTRYPOINT ["dotnet", "CFlix.dll"]

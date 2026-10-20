@@ -28,9 +28,9 @@ namespace CFlix.Data
 
         public async Task Seed()
         {
-            _logger.LogInformation("Update database {0}", _context.Database.GetDbConnection().DataSource);
-            _context.Database.Migrate();
-            _logger.LogInformation("Database migration successfull");
+            _logger.LogInformation("Ensure database created for {0}", _context.Database.GetDbConnection().DataSource);
+            _context.Database.EnsureCreated();
+            _logger.LogInformation("Database ready");
             _logger.LogInformation("SeedStep1");
             await SeedStep1();
             _logger.LogInformation("SeedStep1 finished");

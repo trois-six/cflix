@@ -23,15 +23,16 @@ namespace CFlix.Services
             IOptions<IdentityOptions> optionsAccessor,
             ILogger<SignInManager<CFlixUser>> logger,
             IAuthenticationSchemeProvider schemes,
+            IUserConfirmation<CFlixUser> confirmation,
             CFlix.ActiveDirectory.NETStandard.ActiveDirectory directory)
-            : base(userManager, contextAccessor, claimsFactory, optionsAccessor, logger, schemes)
+            : base(userManager, contextAccessor, claimsFactory, optionsAccessor, logger, schemes, confirmation)
         {
             ad = directory;
         }
 
         public async override Task<SignInResult> PasswordSignInAsync(string userName, string password, bool isPersistent, bool lockoutOnFailure)
         {
-            var userAd = ad.AuthenticateUser("cdbdx\\" + userName, password);
+            var userAd = await ad.AuthenticateUserAsync("cdbdx\\" + userName, password);
 
             if (userAd != null)
             {

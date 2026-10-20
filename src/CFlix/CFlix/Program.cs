@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.IO;
@@ -23,15 +24,17 @@ namespace CFlix
             if (HandleCLIArgs(args))
                 return;
 
-            var host = WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>()
-                .ConfigureAppConfiguration((hostContext, config) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    config.AddFromZipRessource("settings", "appsettings.json");
+                    webBuilder.UseStartup<Startup>();
+                    webBuilder.ConfigureAppConfiguration((hostContext, config) =>
+                    {
+                        config.AddFromZipRessource("settings", "appsettings.json");
+                    });
                 })
-                .Build();
-
-            host.Run();
+                .Build()
+                .Run();
         }
 
         private static bool HandleCLIArgs(string[] args)
@@ -63,26 +66,24 @@ namespace CFlix
 
         private static void ExecuteDBUpdate(bool updateCflixDB, bool updateCFlixDB)
         {
-            var host = WebHost.CreateDefaultBuilder()
-                .UseStartup<Startup>()
-                .ConfigureServices(svc => svc.AddScoped<CFlixAuthInitializer>())
-                .ConfigureServices(svc => svc.AddScoped<CFlixInitializer>())
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                    webBuilder.ConfigureServices(svc =>
+                    {
+                        svc.AddScoped<CFlixAuthInitializer>();
+                        svc.AddScoped<CFlixInitializer>();
+                    });
+                })
                 .Build();
 
             using (var scope = host.Services.CreateScope())
             {
                 var provider = scope.ServiceProvider;
-                
+
                 var mysqlDB = provider.GetService<CFlixInitializer>();
                 var postgresDB = provider.GetService<CFlixAuthInitializer>();
-
-                var loggerFactory = provider.GetService<ILoggerFactory>();
-
-                var settings = new Microsoft.Extensions.Logging.Console.ConsoleLoggerSettings();
-                settings.Switches.Add("Default", LogLevel.Warning);
-                settings.Switches.Add("CFlix", LogLevel.Information);
-
-                loggerFactory.AddConsole(settings);
 
                 var tasks = new List<Task>();
                 if (updateCflixDB)

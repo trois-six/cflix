@@ -27,7 +27,7 @@ namespace CFlix.Services.Repositories
 
         public async Task<IEnumerable<Media>> SearchMediaAsync(string query)
         {
-            return await _context.Medias.FromSql("SELECT Id, ImageUri, Title, Type, YouTubeId, ReleaseDate FROM Medias WHERE Title LIKE '" + query + "'")
+            return await _context.Medias.FromSqlRaw("SELECT Id, ImageUri, Title, Type, YouTubeId, ReleaseDate FROM Medias WHERE Title LIKE '" + query + "'")
                 .Select(m => new Media { Id = m.Id, ImageUri = m.ImageUri, Title = m.Title, Type = m.Type }).ToListAsync();
         }
 

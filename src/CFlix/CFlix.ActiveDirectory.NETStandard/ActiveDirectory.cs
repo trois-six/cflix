@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CFlix.ActiveDirectory.NETStandard
 {
@@ -22,19 +23,22 @@ namespace CFlix.ActiveDirectory.NETStandard
             adUri = activeDirectoryUri;
         }
 
-        public ActiveDirectoryUser AuthenticateUser(string username, string password)
+        public async Task<ActiveDirectoryUser> AuthenticateUserAsync(string username, string password)
         {
-            connection.Connect(adUri.Host, adUri.Port);
-
             try
             {
-                connection.Bind(username, password);
+                await connection.ConnectAsync(adUri.Host, adUri.Port);
 
-                return SearchUser(username);
-            }
-            catch (LdapException e) when (e.ResultCode == LdapException.INVALID_CREDENTIALS)
-            {
-                return null;
+                try
+                {
+                    await connection.BindAsync(username, password);
+                }
+                catch (LdapException e) when (e.ResultCode == LdapException.InvalidCredentials)
+                {
+                    return null;
+                }
+
+                return await SearchUserAsync(username);
             }
             finally
             {
@@ -43,33 +47,23 @@ namespace CFlix.ActiveDirectory.NETStandard
             }
         }
 
-        private ActiveDirectoryUser SearchUser(string username)
+        private async Task<ActiveDirectoryUser> SearchUserAsync(string username)
         {
             var currentUser = new ActiveDirectoryUser();
-            
-            var lsc = connection.Search(
+
+            var lsc = await connection.SearchAsync(
                 adUri.AbsolutePath.Substring(1),
-                LdapConnection.SCOPE_SUB,
+                LdapConnection.ScopeSub,
                 $"(sAMAccountName={(username.Contains("\\") ? username.Split('\\').Last() : username)})",
                 new[] { "name", "userPrincipalName", "sAMAccountName", "employeeID", "extensionAttribute1" },
                 false);
 
-            while (lsc.hasMore())
+            await foreach (var nextEntry in lsc)
             {
-                LdapEntry nextEntry = null;
-                try
-                {
-                    nextEntry = lsc.next();
-                }
-                catch (LdapException)
-                {
-                    continue;
-                }
-
-                currentUser.Name = nextEntry.getAttribute("name")?.StringValue;
-                currentUser.Email = nextEntry.getAttribute("userPrincipalName")?.StringValue;
-                currentUser.NameIdentifier = nextEntry.getAttribute("sAMAccountName")?.StringValue;
-                currentUser.EmployeeID = nextEntry.getAttribute("employeeID")?.StringValue;
+                currentUser.Name = nextEntry.GetStringValueOrDefault("name");
+                currentUser.Email = nextEntry.GetStringValueOrDefault("userPrincipalName");
+                currentUser.NameIdentifier = nextEntry.GetStringValueOrDefault("sAMAccountName");
+                currentUser.EmployeeID = nextEntry.GetStringValueOrDefault("employeeID");
 
                 return currentUser;
             }

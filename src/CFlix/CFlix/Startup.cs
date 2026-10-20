@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace CFlix
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<CFlixAuthContext>(options => options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
-            
+
             var identity = services.AddIdentity<CFlixUser, IdentityRole>(options =>
             {
                 options.User.AllowedUserNameCharacters = "-._abcdefghijklmnopqrstuvwxyzé";
@@ -57,8 +58,8 @@ namespace CFlix
 
             services.AddScoped<IAuthorizationHandler, AccountTypeAuthorizationHandler>();
 
-            services.AddDbContext<CFlixContext>(options => options.UseMySql(Configuration.GetConnectionString("CflixConnection")));
-            services.AddDbContext<CFlixROContext>(options => options.UseMySql(Configuration.GetConnectionString("CflixROConnection")));
+            services.AddDbContext<CFlixContext>(options => options.UseMySql(Configuration.GetConnectionString("CflixConnection"), ServerVersion.AutoDetect(Configuration.GetConnectionString("CflixConnection"))));
+            services.AddDbContext<CFlixROContext>(options => options.UseMySql(Configuration.GetConnectionString("CflixROConnection"), ServerVersion.AutoDetect(Configuration.GetConnectionString("CflixROConnection"))));
 
             if (bool.TryParse(Configuration.GetSection("Cflix")["UseRedis"], out var useRedis) && useRedis)
             {
@@ -67,8 +68,8 @@ namespace CFlix
 
                 var redis = ConnectionMultiplexer.Connect(address);
 
-                services.AddDataProtection().PersistKeysToRedis(redis, "DataProtection-Keys");
-                services.AddDistributedRedisCache(o =>
+                services.AddDataProtection().PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+                services.AddStackExchangeRedisCache(o =>
                 {
                     o.Configuration = Configuration.GetConnectionString("Redis");
                     o.InstanceName = "CFlixRedis";
@@ -87,7 +88,8 @@ namespace CFlix
                 options.Cookie.HttpOnly = false;
             });
 
-            services.AddMvc();
+            services.AddControllersWithViews();
+            services.AddRazorPages();
 
             services.AddTransient<IMediaRepository, MediaRepository>();
             services.AddTransient<IAchievementRepository, AchievementRepository>();
@@ -97,15 +99,11 @@ namespace CFlix
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseBrowserLink();
             }
             else
             {
@@ -121,13 +119,17 @@ namespace CFlix
 
             app.UseStaticFiles();
 
-            app.UseAuthentication();
+            app.UseRouting();
 
-            app.UseMvc(routes =>
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapRoute(
+                endpoints.MapControllerRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                endpoints.MapRazorPages();
             });
         }
     }
