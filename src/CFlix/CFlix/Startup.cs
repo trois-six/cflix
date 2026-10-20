@@ -75,6 +75,15 @@ namespace CFlix
                     o.InstanceName = "CFlixRedis";
                 });
             }
+            else
+            {
+                // No Redis: persist the DataProtection keys to a dedicated volume
+                // so the keys survive container restarts and the "keys not
+                // persisted" startup warning goes away.
+                services.AddDataProtection()
+                    .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/keys"))
+                    .SetApplicationName("CFlix");
+            }
 
             services.ConfigureApplicationCookie(options =>
             {

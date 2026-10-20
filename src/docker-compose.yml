@@ -27,6 +27,8 @@ services:
     - CFLIX__STAGE=3
     - CFLIX__USELDAP=false
     # - ConnectionStrings__LdapUrl=LDAP://domain:389/OU=YOUR_ORGANIZATION,OU=UTILISATEURS,DC=domain,DC=com
+    volumes:
+    - dpkeys:/keys
     depends_on:
     - postgres
     - mysql
@@ -129,6 +131,7 @@ services:
 volumes:
   pgdata:
   mysqldata:
+  dpkeys:
 
 networks: 
   cflix-main:
