@@ -23,8 +23,6 @@ namespace CFlix.Data
 
         public DbSet<CFlixUserEasterEgg> UserEasterEggs { get; set; }
 
-        public DbSet<NewsRelease> NewsReleases { get; set; }
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             //optionsBuilder.UseNpgsql("host=localhost;userid=postgres;password=postgres_password;database=cflix");
@@ -51,11 +49,6 @@ namespace CFlix.Data
                 .HasOne(ueg => ueg.EasterEgg)
                 .WithMany()
                 .HasForeignKey(ueg => ueg.EasterEggId);
-
-            builder.Entity<NewsRelease>()
-                .Property(b => b.CreationDate)
-                .HasDefaultValueSql("current_timestamp");
-
         }
     }
 }

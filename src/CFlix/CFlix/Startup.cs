@@ -102,7 +102,6 @@ namespace CFlix
 
             services.AddTransient<IMediaRepository, MediaRepository>();
             services.AddTransient<IAchievementRepository, AchievementRepository>();
-            services.AddSingleton<INewsReleaseRepository, NewsReleaseRepository>();
             services.AddSingleton<IViewerRepository, ViewerRepository>();
             services.Configure<CFlixConfiguration>(Configuration.GetSection("Cflix"));
         }
