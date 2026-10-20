@@ -1,4 +1,4 @@
-﻿ALTER TABLE "AspNetUsers" ADD "AccountType" int4 NOT NULL DEFAULT 0;
+ALTER TABLE "AspNetUsers" ADD "AccountType" int4 NOT NULL DEFAULT 0;
 
 ALTER TABLE "AspNetUsers" ADD "AvatarType" int2 NOT NULL DEFAULT 0;
 

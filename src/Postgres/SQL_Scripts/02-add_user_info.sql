@@ -1,4 +1,4 @@
-﻿ALTER TABLE "AspNetUsers" ADD "DisplayName" text;
+ALTER TABLE "AspNetUsers" ADD "DisplayName" text;
 
 ALTER TABLE "AspNetUsers" ADD "EmployeeID" text;
 

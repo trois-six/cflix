@@ -1,4 +1,4 @@
-﻿CREATE TABLE "NewsReleases" (
+CREATE TABLE "NewsReleases" (
     "Id" serial NOT NULL,
     "Content" text,
     "CreationDate" timestamptz NOT NULL DEFAULT (current_timestamp),

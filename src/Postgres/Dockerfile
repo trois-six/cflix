@@ -1,4 +1,2 @@
-FROM postgres:alpine
-# RUN addgroup -S postgres && adduser -S -G postgres cflix-db-admin
-# USER cflix-db-admin
+FROM postgres:18-alpine
 COPY "./SQL_Scripts/*" /docker-entrypoint-initdb.d/

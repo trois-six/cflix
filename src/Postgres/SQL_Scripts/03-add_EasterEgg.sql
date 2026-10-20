@@ -1,4 +1,4 @@
-﻿CREATE TABLE "EasterEggs" (
+CREATE TABLE "EasterEggs" (
     "Id" serial NOT NULL,
     "Description" text,
     "Hash" varchar(64),
